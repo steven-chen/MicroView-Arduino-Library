@@ -19,8 +19,23 @@
 #define MICROVIEW_H
 
 #include <stdio.h>
-#include <Arduino.h>
-#include <avr/pgmspace.h>
+#include <stdint.h>
+
+#define _BV(bit) (1 << (bit))
+#define PI 3.1416
+#define SFSR 1
+#define SPSR 1
+#define SPDR 1
+#define PORTB 1
+#define DDRB 1
+#define SPIF 1
+#define SPCR 1
+#define SPIE 1
+#define PORTD 1
+#define DDRD 1
+#define OUTPUT 1
+#define PORTD 1
+#define PORTD 1
 
 #define swap(a, b) { uint8_t t = a; a = b; b = t; }
 
@@ -28,32 +43,29 @@
 
 // Port and bit mappings for DC, RESET, SS
 // ** These are CPU dependent **
-#define DCPORT	PORTB
-#define DCDDR	DDRB
-#define DCBIT	0
-
-#define RESETPORT	PORTD
-#define RESETDDR	DDRD
-#define RESETBIT	7
-
-#define SSPORT	PORTB
-#define SSDDR	DDRB
-#define SSBIT	2
+#define OLED_CS       25 
+#define OLED_DC       24 
+#define OLED_RES      29 
+#define OLED_DAT      28 
+#define OLED_CLK      30 
 
 // Macros to quickly set DC, RESET, SS
 // A HIGH sets the signal to input mode with the internal pullup enabled
-#define DCHIGH ((DCPORT |= _BV(DCBIT)), (DCDDR &= ~_BV(DCBIT)))
-#define DCLOW ((DCPORT &= ~_BV(DCBIT)), (DCDDR |= _BV(DCBIT)))
+#define DCHIGH nrf_gpio_pin_set(OLED_DC)
+#define DCLOW nrf_gpio_pin_clear(OLED_DC)
 
-#define RESETHIGH ((RESETPORT |= _BV(RESETBIT)), (RESETDDR &= ~_BV(RESETBIT)))
-#define RESETLOW ((RESETPORT &= ~_BV(RESETBIT)), (RESETDDR |= _BV(RESETBIT)))
+#define RESETHIGH nrf_gpio_pin_set(OLED_RES)
+#define RESETLOW nrf_gpio_pin_clear(OLED_RES)
 
-#define SSHIGH ((SSPORT |= _BV(SSBIT)), (SSDDR &= ~_BV(SSBIT)))
-#define SSLOW ((SSPORT &= ~_BV(SSBIT)), (SSDDR |= _BV(SSBIT)))
+#define SSHIGH nrf_gpio_pin_set(OLED_CS)
+#define SSLOW nrf_gpio_pin_clear(OLED_CS)
 
-// SCK, MOSI already defined by original pins_arduino.h
-//#define SCK	13
-//#define MOSI	11
+#define DATHIGH nrf_gpio_pin_set(OLED_DAT)
+#define DATLOW nrf_gpio_pin_clear(OLED_DAT)
+
+#define CLKHIGH nrf_gpio_pin_set(OLED_CLK)
+#define CLKLOW nrf_gpio_pin_clear(OLED_CLK)
+
 
 #define BLACK 0
 #define WHITE 1
@@ -143,7 +155,7 @@ typedef enum CMD {
 	CMD_SETDRAWMODE		//18
 } commCommand_t;
 
-class MicroView : public Print{
+class MicroView {
 public:
 	MicroView(void) {};
 	void begin(void);
@@ -168,7 +180,7 @@ public:
 	// LCD Draw functions
 	void clear(uint8_t mode);
 	void clear(uint8_t mode, uint8_t c);
-	void invert(boolean inv);
+	void invert(bool inv);
 	void contrast(uint8_t contrast);
 	void display(void);
 	void setCursor(uint8_t x, uint8_t y);
@@ -212,12 +224,12 @@ public:
 	void scrollVertRight(uint8_t start, uint8_t stop);
 	void scrollVertLeft(uint8_t start, uint8_t stop);
 	void scrollStop(void);
-	void flipVertical(boolean flip);
-	void flipHorizontal(boolean flip);
+	void flipVertical(bool flip);
+	void flipHorizontal(bool flip);
 	
 	// Communication
-	void checkComm(void);
-	void doCmd(uint8_t index);
+	//void checkComm(void);
+	//void doCmd(uint8_t index);
 	
 private:
 	uint8_t foreColor,drawMode,fontWidth, fontHeight, fontType, fontStartChar, fontTotalChar, cursorX, cursorY;
@@ -290,23 +302,6 @@ private:
 	int16_t prevValue;
 };
 
-#define SPI_CLOCK_DIV4 0x00
-#define SPI_CLOCK_DIV16 0x01
-#define SPI_CLOCK_DIV64 0x02
-#define SPI_CLOCK_DIV128 0x03
-#define SPI_CLOCK_DIV2 0x04
-#define SPI_CLOCK_DIV8 0x05
-#define SPI_CLOCK_DIV32 0x06
-//#define SPI_CLOCK_DIV64 0x07
-
-#define SPI_MODE0 0x00
-#define SPI_MODE1 0x04
-#define SPI_MODE2 0x08
-#define SPI_MODE3 0x0C
-
-#define SPI_MODE_MASK 0x0C  // CPOL = bit 3, CPHA = bit 2 on SPCR
-#define SPI_CLOCK_MASK 0x03  // SPR1 = bit 1, SPR0 = bit 0 on SPCR
-#define SPI_2XCLOCK_MASK 0x01  // SPI2X = bit 0 on SPSR
 
 class MVSPIClass {
 public:
@@ -314,7 +309,7 @@ public:
   inline static void wait();
 
 /** \brief Transfer data byte via SPI port. */
-  inline static void transfer(byte _data);
+  inline static void transfer(uint8_t _data);
 
 /** \brief Set up to begin a SPI packet transmit */
   static void packetBegin();
@@ -324,35 +319,24 @@ public:
 
   // SPI Configuration methods
 
-  inline static void attachInterrupt();
-  inline static void detachInterrupt(); // Default
+  //inline static void attachInterrupt();
+  //inline static void detachInterrupt(); // Default
 
   static void begin(); // Default
   static void end();
 
-  static void setBitOrder(uint8_t);
-  static void setDataMode(uint8_t);
-  static void setClockDivider(uint8_t);
+  //static void setBitOrder(uint8_t);
+  //static void setDataMode(uint8_t);
+  //static void setClockDivider(uint8_t);
 };
 
 extern MVSPIClass MVSPI;
 
 void MVSPIClass::wait() {
-  while (!(SPSR & _BV(SPIF)))
-    ;
+    
+	  ;
 }
 
-void MVSPIClass::transfer(byte _data) {
-  SPDR = _data;
-}
-
-void MVSPIClass::attachInterrupt() {
-  SPCR |= _BV(SPIE);
-}
-
-void MVSPIClass::detachInterrupt() {
-  SPCR &= ~_BV(SPIE);
-}
 
 extern MicroView uView;
 

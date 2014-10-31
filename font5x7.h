@@ -18,10 +18,9 @@
 #ifndef FONT5X7_H
 #define FONT5X7_H
 
-#include <avr/pgmspace.h>
 
 // Standard ASCII 5x7 font
-static const unsigned char font5x7[] PROGMEM = {
+static const unsigned char font5x7[] = {
 	// first row defines - FONTWIDTH, FONTHEIGHT, ASCII START CHAR, TOTAL CHARACTERS, FONT MAP WIDTH HIGH, FONT MAP WIDTH LOW (2,56 meaning 256)
 	5,8,0,255,12,75,
 	0x00, 0x00, 0x00, 0x00, 0x00,

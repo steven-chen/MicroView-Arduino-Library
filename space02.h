@@ -18,9 +18,8 @@
 #ifndef SPACE02_H
 #define SPACE02_H
 
-#include <avr/pgmspace.h>
 
-static const unsigned char space02[] PROGMEM = {
+static const unsigned char space02[] = {
 	// first row defines - FONTWIDTH, FONTHEIGHT, ASCII START CHAR, TOTAL CHARACTERS, FONT MAP WIDTH HIGH, FONT MAP WIDTH LOW (2,56 meaning 256)
 	24,16,48,2,0,48,	
 	0xF0, 0xF0, 0xFC, 0xFC, 0xFC, 0xFC, 0x3C, 0x3C, 0x3F, 0x3F, 0xFF, 0xFF, 0xFF, 0xFF, 0x3F, 0x3F,

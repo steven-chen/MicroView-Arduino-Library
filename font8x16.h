@@ -18,9 +18,8 @@
 #ifndef FONT8X16_H
 #define FONT8X16_H
 
-#include <avr/pgmspace.h>
 
-static const unsigned char font8x16[] PROGMEM = {
+static const unsigned char font8x16[] = {
 	// first row defines - FONTWIDTH, FONTHEIGHT, ASCII START CHAR, TOTAL CHARACTERS, FONT MAP WIDTH HIGH, FONT MAP WIDTH LOW (2,56 meaning 256)
 	8,16,32,96,2,56,		
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFE, 0x00, 0x00, 0x00, 0x00,

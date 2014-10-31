@@ -15,13 +15,12 @@
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-#include <avr/pgmspace.h>
+
 //#include <SPI.h>
 #include <MicroView.h>
-
-// This fixed ugly GCC warning "only initialized variables can be placed into program memory area"
-#undef PROGMEM
-#define PROGMEM __attribute__((section(".progmem.data")))
+#include <math.h>
+#include "nrf_delay.h"
+#include "nrf_gpio.h"
 
 // Add header of the fonts here.  Remove as many as possible to conserve FLASH memory.
 #include <font5x7.h>
@@ -123,31 +122,30 @@ void MicroView::begin() {
 	setColor(WHITE);
 	setDrawMode(NORM);
 	setCursor(0,0);
+  nrf_gpio_cfg_output(OLED_CS);
+  nrf_gpio_cfg_output(OLED_DC);
+	nrf_gpio_cfg_output(OLED_RES);
+  nrf_gpio_cfg_output(OLED_DAT);
+	nrf_gpio_cfg_output(OLED_CLK);
 
 	RESETLOW;
 	
-	// Enable 3.3V power to the display
-	pinMode(OLEDPWR, OUTPUT);
-	digitalWrite(OLEDPWR, HIGH);
-
 	// Give some time for power to stabilise
-	delay(10);
+	nrf_delay_us(10);
 
 	RESETHIGH;
-	delay(5);
+	nrf_delay_us(5);
 	RESETLOW;
 
-	// Setup SPI frequency
-	MVSPI.setClockDivider(SPI_CLOCK_DIV2); 
 	// Initialise SPI
 	MVSPI.begin();
 
-	delay(5);
+	nrf_delay_us(5);
 
 	// bring out of reset
 	RESETHIGH;
 
-	delay(10);
+	nrf_delay_us(10);
 
 	// Init sequence for 64x48 OLED module
 	//	command(DISPLAYOFF);				// 0xAE
@@ -181,11 +179,10 @@ void MicroView::end() {
 	DCLOW;						// Just in case
 	command(DISPLAYOFF);
 	command(CHARGEPUMP, 0x10);	// Disable the charge pump
-	delay(150);					// Wait for charge pump off
+	nrf_delay_us(150);					// Wait for charge pump off
 	RESETLOW;
 	SSLOW;
 	MVSPI.end();				// Disable SPI mode
-	digitalWrite(OLEDPWR, LOW);	// Power off the 3.3V regulator
 }
 
 /** \brief Send 1 command byte.
@@ -276,7 +273,7 @@ void MicroView::clear(uint8_t mode) {
 	}
 	else
 	{
-		memset(screenmemory, 0, LCDWIDTH * LCDPAGES);
+		//memset(screenmemory, 0, LCDWIDTH * LCDPAGES);
 		//display();
 	}
 }
@@ -304,7 +301,7 @@ void MicroView::clear(uint8_t mode, uint8_t c) {
 	}
 	else
 	{
-		memset(screenmemory, c, LCDWIDTH * LCDPAGES);
+		//memset(screenmemory, c, LCDWIDTH * LCDPAGES);
 		display();
 	}	
 }
@@ -313,7 +310,7 @@ void MicroView::clear(uint8_t mode, uint8_t c) {
 
 	The WHITE color of the display will turn to BLACK and the BLACK will turn to WHITE.
 */
-void MicroView::invert(boolean inv) {
+void MicroView::invert(bool inv) {
 	if (inv)
 	command(INVERTDISPLAY);
 	else
@@ -431,7 +428,7 @@ void MicroView::line(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1) {
 	Draw line using color and mode from x0,y0 to x1,y1 of the screen buffer.
 */
 void MicroView::line(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1, uint8_t color, uint8_t mode) {
-	uint8_t steep = abs(y1 - y0) > abs(x1 - x0);
+	uint8_t steep = abs(double(y1 - y0)) > abs(double(x1 - x0));
 	if (steep) {
 		swap(x0, y0);
 		swap(x1, y1);
@@ -444,7 +441,7 @@ void MicroView::line(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1, uint8_t col
 
 	uint8_t dx, dy;
 	dx = x1 - x0;
-	dy = abs(y1 - y0);
+	dy = abs(double(y1 - y0));
 
 	int8_t err = dx / 2;
 	int8_t ystep;
@@ -736,11 +733,11 @@ uint8_t MicroView::setFontType(uint8_t type) {
 	return false;
 
 	fontType=type;
-	fontWidth=pgm_read_byte(fontsPointer[fontType]+0);
-	fontHeight=pgm_read_byte(fontsPointer[fontType]+1);
-	fontStartChar=pgm_read_byte(fontsPointer[fontType]+2);
-	fontTotalChar=pgm_read_byte(fontsPointer[fontType]+3);
-	fontMapWidth=(pgm_read_byte(fontsPointer[fontType]+4)*100)+pgm_read_byte(fontsPointer[fontType]+5); // two bytes values into integer 16
+	fontWidth=(uint8_t)*(fontsPointer[fontType]+0);
+	fontHeight=(uint8_t)*(fontsPointer[fontType]+1);
+	fontStartChar=(uint8_t)*(fontsPointer[fontType]+2);
+	fontTotalChar=(uint8_t)*(fontsPointer[fontType]+3);
+	fontMapWidth=((uint8_t)*(fontsPointer[fontType]+4)*100)+(uint8_t)*(fontsPointer[fontType]+5); // two bytes values into integer 16
 	return true;
 }
 
@@ -794,7 +791,7 @@ void  MicroView::drawChar(uint8_t x, uint8_t y, uint8_t c, uint8_t color, uint8_
 			if (i==fontWidth) // this is done in a weird way because for 5x7 font, there is no margin, this code add a margin after col 5
 			temp=0;
 			else
-			temp=pgm_read_byte(fontsPointer[fontType]+FONTHEADERSIZE+(tempC*fontWidth)+i);
+			temp=(uint8_t)*(fontsPointer[fontType]+FONTHEADERSIZE+(tempC*fontWidth)+i);
 			
 			for (j=0;j<8;j++) {			// 8 is the LCD's page height (see datasheet for explanation)
 				if (temp & 0x1) {
@@ -820,7 +817,7 @@ void  MicroView::drawChar(uint8_t x, uint8_t y, uint8_t c, uint8_t color, uint8_
 	// each row on LCD is 8 bit height (see datasheet for explanation)
 	for(row=0;row<rowsToDraw;row++) {
 		for (i=0; i<fontWidth;i++) {
-			temp=pgm_read_byte(fontsPointer[fontType]+FONTHEADERSIZE+(charBitmapStartPosition+i+(row*fontMapWidth)));
+			temp=(uint8_t)*(fontsPointer[fontType]+FONTHEADERSIZE+(charBitmapStartPosition+i+(row*fontMapWidth)));
 			for (j=0;j<8;j++) {			// 8 is the LCD's page height (see datasheet for explanation)
 				if (temp & 0x1) {
 					pixel(x+i,y+j+(row*8), color, mode);
@@ -902,7 +899,7 @@ void MicroView::scrollLeft(uint8_t start, uint8_t stop){
 
 	Flip the graphics on the OLED vertically.
 */
-void MicroView::flipVertical(boolean flip) {
+void MicroView::flipVertical(bool flip) {
 	if (flip) {
 		command(COMSCANINC);
 	}
@@ -915,7 +912,7 @@ void MicroView::flipVertical(boolean flip) {
 
 	Flip the graphics on the OLED horizontally.
 */	
-void MicroView::flipHorizontal(boolean flip) {
+void MicroView::flipHorizontal(bool flip) {
 	if (flip) {
 		command(SEGREMAP | 0x0);
 	}
@@ -936,6 +933,7 @@ uint8_t *MicroView::getScreenBuffer(void) {
 
 	Command stored in serCmd array will be parsed to performed draw functions.
 */
+/*
 void MicroView::doCmd(uint8_t cmdCount) {
 	// decode command
 	switch (serCmd[0]) {
@@ -1300,11 +1298,12 @@ void MicroView::doCmd(uint8_t cmdCount) {
 		break;
 	}
 }
-
+*/
 /** \brief Listen for serial command.
 
 	Instruct the MicroView to check for serial command from the UART.
 */
+/*
 void MicroView::checkComm(void) {
 	int count = readSerial();
 	char *result;
@@ -1330,24 +1329,25 @@ void MicroView::checkComm(void) {
 					break;
 				}
 			}
-			/*
+			
 				// debug output
-				Serial.print("command received=");
-				Serial.println(index);
-				for (uint8_t i=0;i<index;i++) {
-					Serial.println(serCmd[i]);
-				}
-				*/
+				//Serial.print("command received=");
+				//Serial.println(index);
+				//for (uint8_t i=0;i<index;i++) {
+				//	Serial.println(serCmd[i]);
+				//}
+				
 		}
 		doCmd(index-1);	// index-1 is the total parameters count of a command
 	}
 }
-
+*/
 
 /** \brief Read serial port.
 
 	Check for data from the serial port (UART) and store to serInStr array.
 */
+/*
 int MicroView::readSerial(void)
 {
 	int i=0;
@@ -1367,7 +1367,7 @@ int MicroView::readSerial(void)
 	serInStr[i]='\0';
 	return i;
 }
-
+*/
 // -------------------------------------------------------------------------------------
 // MicroViewWidget Class - start
 // -------------------------------------------------------------------------------------
@@ -1476,9 +1476,9 @@ void MicroViewWidget::reDraw() {
 void MicroViewWidget::drawNumValue(int16_t value) {
 
 	for (uint8_t i = maxValLen - getInt16PrintLen(value); i > 0; i--) {
-		uView.print(" ");
+		//uView.print(" ");
 	}
-	uView.print(value);
+	//uView.print(value);
 }
 
 /*	Set the maximum number of characters that would be printed
@@ -1753,6 +1753,7 @@ void MicroViewGauge::drawPointer() {
 	Setup SCK, MOSI, SS and DC pins for SPI transmission.
 */
 void MVSPIClass::begin() {
+
 	// Set SS to high so the display will be "deselected" by default
 	SSHIGH;
 	// Warning: if the SS pin ever becomes a LOW INPUT then SPI
@@ -1764,24 +1765,21 @@ void MVSPIClass::begin() {
 	DCLOW;
 
 	// Set SCK and MOSI to be outputs and low when SPI is disabled.
-	digitalWrite(SCK, LOW);
-	digitalWrite(MOSI, LOW);
-	pinMode(SCK, OUTPUT);
-	pinMode(MOSI, OUTPUT);
+	CLKHIGH;
+	DATLOW;
 
-	// Set SPI master mode. Don't enable SPI at this time.
-	SPCR |= _BV(MSTR);
+
 }
 
 /** \brief End SPI. */
 void MVSPIClass::end() {
-	SPCR &= ~_BV(SPE);
-	// SCK and MOSI should already be low but set them again, to be sure.
-	digitalWrite(SCK, LOW);
-	digitalWrite(MOSI, LOW);
-	pinMode(SCK, OUTPUT);
-	pinMode(MOSI, OUTPUT);
+  SSHIGH;
+	CLKHIGH;
+	DATLOW;
+
 }
+
+
 
 /** \brief Set up SPI for transmitting
 
@@ -1789,11 +1787,24 @@ void MVSPIClass::end() {
 	commands and/or data.
 */
 void MVSPIClass::packetBegin() {
-	// Enable SPI mode
-	SPCR |= _BV(SPE);
-
 	// Set SS low
 	SSLOW;
+}
+
+void MVSPIClass::transfer(uint8_t _data) {
+  //SPDR = _data;
+  uint8_t i;
+	for(i=0;i<8;i++)
+	{			  
+		CLKLOW;
+		if(_data&0x80)
+		   DATHIGH;
+		else 
+		   DATLOW;
+		CLKHIGH;
+		_data<<=1;   
+	}				 		  
+	  
 }
 
 /** \brief End a SPI packet transmission
@@ -1805,17 +1816,17 @@ void MVSPIClass::packetBegin() {
 	- Disable SPI mode (causing SCK and MOSI to go low).
 */
 void MVSPIClass::packetEnd() {
-	while (!(SPSR & _BV(SPIF)))
-	;
+
 	DCLOW;
 	SSHIGH;
-	SPCR &= ~_BV(SPE);
+
 }
 
 /** \brief Set SPI bit order.
 
 	Set SPI port bit order with LSBFIRST or MSBFIRST.
 */
+/*
 void MVSPIClass::setBitOrder(uint8_t bitOrder)
 {
 	if(bitOrder == LSBFIRST) {
@@ -1824,16 +1835,17 @@ void MVSPIClass::setBitOrder(uint8_t bitOrder)
 		SPCR &= ~(_BV(DORD));
 	}
 }
-
+*/
 /** \brief Set SPI data mode.
 
 	Set the SPI data mode: clock polarity and phase.  mode - SPI_MODE0, SPI_MODE1, SPI_MODE2, SPI_MODE3.
 */
+/*
 void MVSPIClass::setDataMode(uint8_t mode)
 {
 	SPCR = (SPCR & ~SPI_MODE_MASK) | mode;
 }
-
+*/
 /** \brief Set clock divider.
 
 	Set the clocl divider of the SPI, default is 4Mhz.
@@ -1846,12 +1858,13 @@ void MVSPIClass::setDataMode(uint8_t mode)
 			SPI_CLOCK_DIV64
 			SPI_CLOCK_DIV128 
 */
+/*
 void MVSPIClass::setClockDivider(uint8_t rate)
 {
 	SPCR = (SPCR & ~SPI_CLOCK_MASK) | (rate & SPI_CLOCK_MASK);
 	SPSR = (SPSR & ~SPI_2XCLOCK_MASK) | ((rate >> 2) & SPI_2XCLOCK_MASK);
 }
-
+*/
 MVSPIClass MVSPI;
 MicroView uView;
 
@@ -1859,6 +1872,7 @@ MicroView uView;
 
 	Return the number of characters that would be printed using uView.print(x) for x being a signed 16 bit integer.
 */
+
 uint8_t getInt16PrintLen(int16_t val) {
 	int16_t i;
 	uint8_t count;
@@ -1876,7 +1890,7 @@ uint8_t getInt16PrintLen(int16_t val) {
 	}
 	else {
 		count = 2;
-		val = abs(val);
+		val = abs(double(val));
 	}
 
 	i = 10;
