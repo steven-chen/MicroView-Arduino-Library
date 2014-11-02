@@ -18,9 +18,11 @@
 
 //#include <SPI.h>
 #include <MicroView.h>
+#include <string.h>
 #include <math.h>
 #include "nrf_delay.h"
 #include "nrf_gpio.h"
+#include "print.h"
 
 // Add header of the fonts here.  Remove as many as possible to conserve FLASH memory.
 #include <font5x7.h>
@@ -273,8 +275,8 @@ void MicroView::clear(uint8_t mode) {
 	}
 	else
 	{
-		//memset(screenmemory, 0, LCDWIDTH * LCDPAGES);
-		//display();
+		memset(screenmemory, 0, LCDWIDTH * LCDPAGES);
+		display();
 	}
 }
 
@@ -301,7 +303,7 @@ void MicroView::clear(uint8_t mode, uint8_t c) {
 	}
 	else
 	{
-		//memset(screenmemory, c, LCDWIDTH * LCDPAGES);
+		memset(screenmemory, c, LCDWIDTH * LCDPAGES);
 		display();
 	}	
 }
@@ -1476,9 +1478,9 @@ void MicroViewWidget::reDraw() {
 void MicroViewWidget::drawNumValue(int16_t value) {
 
 	for (uint8_t i = maxValLen - getInt16PrintLen(value); i > 0; i--) {
-		//uView.print(" ");
+		uView.print(" ");
 	}
-	//uView.print(value);
+	uView.print(value);
 }
 
 /*	Set the maximum number of characters that would be printed

@@ -20,26 +20,13 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include "print.h"
 
 #define _BV(bit) (1 << (bit))
 #define PI 3.1416
-#define SFSR 1
-#define SPSR 1
-#define SPDR 1
-#define PORTB 1
-#define DDRB 1
-#define SPIF 1
-#define SPCR 1
-#define SPIE 1
-#define PORTD 1
-#define DDRD 1
-#define OUTPUT 1
-#define PORTD 1
-#define PORTD 1
 
 #define swap(a, b) { uint8_t t = a; a = b; b = t; }
 
-#define OLEDPWR	4	// 3.3V regulator enable
 
 // Port and bit mappings for DC, RESET, SS
 // ** These are CPU dependent **
@@ -155,7 +142,7 @@ typedef enum CMD {
 	CMD_SETDRAWMODE		//18
 } commCommand_t;
 
-class MicroView {
+class MicroView : public Print {
 public:
 	MicroView(void) {};
 	void begin(void);
