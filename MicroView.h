@@ -289,6 +289,20 @@ private:
 	int16_t prevValue;
 };
 
+class MicroViewClock: public MicroViewWidget{
+public:
+	MicroViewClock(uint8_t newx, uint8_t newy, int16_t min, int16_t max);
+	MicroViewClock(uint8_t newx, uint8_t newy, int16_t min, int16_t max, uint8_t sty);
+	void draw();
+	void drawFace();
+private:
+	void drawPointer();
+	uint8_t style, radius;
+	bool noValDraw;
+	int16_t prevValue;
+};
+
+
 
 class MVSPIClass {
 public:
